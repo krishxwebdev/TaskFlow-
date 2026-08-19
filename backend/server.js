@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
+const pgSession = require('connect-pg-simple')(session);
+const pool = require('./config/db');
 
 const authRoutes = require('./routes/auth');
 const todoRoutes = require('./routes/todo');
@@ -11,12 +13,11 @@ const app = express();
 // --- CORS: allow both local dev and the deployed Vercel frontend ---
 const allowedOrigins = [
   'http://localhost:5173',
-  process.env.FRONTEND_URL,  // set this on Render to your Vercel URL
+  process.env.FRONTEND_URL,
 ].filter(Boolean);
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, Postman)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -28,14 +29,21 @@ app.use(cors({
 
 app.use(express.json());
 
+// Store sessions in PostgreSQL instead of memory —
+// this fixes the MemoryStore warning and survives server restarts.
 app.use(session({
+  store: new pgSession({
+    pool,                     // reuse the existing db connection pool
+    tableName: 'user_sessions',
+    createTableIfMissing: true,  // auto-creates the sessions table
+  }),
   secret: process.env.SESSION_SECRET || 'dev_secret_change_me',
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',  // HTTPS only in production
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',  // needed for cross-domain cookies
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge: 1000 * 60 * 60 * 24, // 1 day
   },
 }));

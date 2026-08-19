@@ -2,7 +2,9 @@
 // Every component imports functions from here instead of calling fetch() directly.
 // That way, if the backend URL ever changes, we only edit it in ONE place.
 
-const BASE_URL = 'http://localhost:5000';
+// In production (Vercel), use the live Render backend.
+// In local dev, use localhost. Vite exposes import.meta.env.
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 // A small wrapper around fetch() that:
 // 1. Always sends/receives cookies (credentials: 'include') -> needed for sessions
