@@ -36,7 +36,7 @@ A full-stack **task management web application** built with React, Node.js/Expre
 
 ### 1. Clone the repo
 ```bash
-git clone https://github.com/krishxwebdev/taskflow.git
+git clone https://github.com/krishxwebdev/TaskFlow-.git
 cd taskflow
 ```
 
