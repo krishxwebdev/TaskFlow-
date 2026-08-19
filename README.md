@@ -1,122 +1,175 @@
 # TaskFlow
 
-A full-stack **task management web application** built with React, Node.js/Express, and MySQL.
+A full-stack task management application for organizing work, tracking
+progress, and managing deadlines through a responsive dashboard.
 
-![TaskFlow Dashboard](https://img.shields.io/badge/status-active-brightgreen) ![React](https://img.shields.io/badge/React-19-blue) ![Node.js](https://img.shields.io/badge/Node.js-Express-green) ![MySQL](https://img.shields.io/badge/Database-MySQL-orange)
+## Live Demo
 
-## ✨ Features
+[Open TaskFlow on Vercel](https://task-flow-kappa-vert.vercel.app/)
 
-- 🔐 **Secure Authentication** — Register & login with Employee ID + password (bcrypt hashed)
-- ✅ **Full Task CRUD** — Create, read, update, delete tasks with title, description, priority & due date
-- 📊 **Live Dashboard** — Real-time stats: total, pending, in-progress, completed, overdue & completion %
-- 📈 **Progress Bar** — Visual completion tracking
-- 🔍 **Search & Filter** — Filter by status, priority; search by keyword
-- 🔃 **Sort Tasks** — By due date, priority, status, or newest
-- 🔔 **Toast Notifications** — Instant feedback on every action
-- 🗑️ **Confirm Modal** — Styled delete confirmation (no ugly browser dialogs)
-- ⌨️ **Keyboard Shortcuts** — `Ctrl+N` new task, `Esc` cancel
-- 📱 **Fully Responsive** — Works on mobile, tablet, and desktop
-- 🌙 **Premium Dark Theme** — Glassmorphism, animated gradients, Inter font
+> The frontend is hosted on Vercel and communicates with a separately deployed
+> Node.js API and PostgreSQL database.
 
-## 🛠️ Tech Stack
+## Features
+
+- Account registration and login with employee ID and password
+- Password hashing with bcrypt
+- JWT authentication with seven-day tokens
+- User-specific task data
+- Create, read, update, and delete tasks
+- Task priorities, descriptions, due dates, and statuses
+- Dashboard totals for pending, in-progress, completed, and overdue tasks
+- Completion-rate progress tracking
+- Search and filter by status or priority
+- Keyboard shortcuts for common actions
+- Toast notifications and custom confirmation dialogs
+- Responsive dark-themed interface
+
+## Tech Stack
 
 | Layer | Technology |
-|-------|-----------|
-| Frontend | React 19 + Vite 8 |
-| Styling | Vanilla CSS (custom dark theme) |
-| Backend | Node.js + Express 4 |
-| Database | MySQL (via mysql2/promise) |
-| Auth | bcryptjs + express-session |
+| --- | --- |
+| Frontend | React 19, Vite 8, Vanilla CSS |
+| Backend | Node.js, Express 4 |
+| Database | PostgreSQL with `pg` |
+| Authentication | JSON Web Tokens and bcryptjs |
+| Frontend hosting | Vercel |
 
-## 🚀 Quick Start
+## Project Structure
 
-### Prerequisites
-- Node.js 18+
-- MySQL (XAMPP, MySQL Workbench, or any MySQL server)
-
-### 1. Clone the repo
-```bash
-git clone https://github.com/krishxwebdev/TaskFlow-.git
-cd taskflow
-```
-
-### 2. Set up the database
-```bash
-# In your MySQL client, run:
-mysql -u root -p < backend/schema.sql
-```
-
-### 3. Configure the backend
-```bash
-cd backend
-cp .env.example .env
-# Edit .env — set your DB_HOST, DB_USER, DB_PASSWORD, DB_PORT
-```
-
-### 4. Start the backend
-```bash
-cd backend
-npm install
-npm start
-# → Running on http://localhost:5000
-```
-
-### 5. Start the frontend
-```bash
-cd frontend
-npm install
-npm run dev
-# → Open http://localhost:5173
-```
-
-## 📁 Project Structure
-
-```
+```text
 taskflow/
 ├── backend/
-│   ├── config/db.js          # MySQL connection pool
-│   ├── middleware/            # requireAuth guard
+│   ├── config/
+│   │   ├── db.js              # PostgreSQL connection pool
+│   │   └── initDb.js          # Automatic table initialization
+│   ├── middleware/
+│   │   └── requireAuth.js     # JWT authentication guard
 │   ├── routes/
-│   │   ├── auth.js            # /api/auth/* — register, login, logout, me
-│   │   └── todo.js            # /todo/* — CRUD + summary
-│   ├── schema.sql             # Database schema
-│   ├── server.js              # Express app entry point
-│   └── .env.example
+│   │   ├── auth.js            # Registration and login routes
+│   │   └── todo.js            # Task CRUD and summary routes
+│   ├── .env.example
+│   ├── schema.sql
+│   └── server.js
 └── frontend/
     └── src/
-        ├── api/api.js         # All fetch wrappers
-        ├── components/
-        │   ├── Dashboard.jsx  # Main view — data + state owner
-        │   ├── Login.jsx      # Register / Sign in
-        │   ├── StatsCards.jsx # Summary stats + progress bar
-        │   ├── TaskForm.jsx   # Add / Edit task form
-        │   ├── TaskItem.jsx   # Single task row
-        │   ├── TaskList.jsx   # Task list + empty state
-        │   ├── Toast.jsx      # Toast notification system
-        │   └── ConfirmModal.jsx # Delete confirmation modal
+        ├── api/api.js         # API client and JWT storage
+        ├── components/        # Dashboard and task UI
         ├── App.jsx
         └── main.jsx
 ```
 
-## 🔑 API Endpoints
+## Run Locally
 
-| Method | Route | Auth | Description |
-|--------|-------|------|-------------|
-| POST | `/api/auth/register` | ✗ | Create account |
-| POST | `/api/auth/login` | ✗ | Login |
-| GET | `/api/auth/me` | ✗ | Session check |
-| POST | `/api/auth/logout` | ✗ | Logout |
-| GET | `/todo` | ✓ | List tasks (filterable) |
-| POST | `/todo` | ✓ | Create task |
-| GET | `/todo/summary` | ✓ | Dashboard stats |
-| PUT | `/todo/:id` | ✓ | Update task |
-| PUT | `/todo/:id/status` | ✓ | Update status |
-| DELETE | `/todo/:id` | ✓ | Delete task |
+### Prerequisites
 
-## 🌐 Deployment
+- Node.js 18 or later
+- npm
+- PostgreSQL
 
-See [deployment guide](#) for instructions on deploying to Vercel + Render + PlanetScale.
+### 1. Clone the repository
 
----
+```bash
+git clone https://github.com/krishxwebdev/TaskFlow-.git
+cd TaskFlow-
+```
 
-Made with ❤️ by [krishxwebdev](https://github.com/krishxwebdev)
+### 2. Configure PostgreSQL
+
+Create a PostgreSQL database named `taskflow`. The backend automatically
+creates the required `users` and `tasks` tables when it starts. You can also
+apply the complete schema manually:
+
+```bash
+psql -d taskflow -f backend/schema.sql
+```
+
+### 3. Configure and run the backend
+
+```bash
+cd backend
+npm install
+```
+
+Copy `.env.example` to `.env` and configure it:
+
+```env
+DATABASE_URL=postgresql://postgres:your_password@localhost:5432/taskflow
+JWT_SECRET=replace_with_a_long_random_secret
+PORT=5000
+NODE_ENV=development
+FRONTEND_URL=http://localhost:5173
+```
+
+Start the API:
+
+```bash
+npm run dev
+```
+
+The API will be available at `http://localhost:5000`.
+
+### 4. Configure and run the frontend
+
+In a second terminal:
+
+```bash
+cd frontend
+npm install
+```
+
+Create `frontend/.env`:
+
+```env
+VITE_API_URL=http://localhost:5000
+```
+
+Start the frontend:
+
+```bash
+npm run dev
+```
+
+Open `http://localhost:5173`.
+
+## API Endpoints
+
+| Method | Route | Authentication | Description |
+| --- | --- | --- | --- |
+| `POST` | `/api/auth/register` | No | Create an account |
+| `POST` | `/api/auth/login` | No | Log in and receive a JWT |
+| `GET` | `/api/auth/me` | Optional | Validate the current token |
+| `POST` | `/api/auth/logout` | No | Return a logout response |
+| `GET` | `/todo` | Bearer token | List and filter the user's tasks |
+| `POST` | `/todo` | Bearer token | Create a task |
+| `GET` | `/todo/summary` | Bearer token | Retrieve dashboard statistics |
+| `PUT` | `/todo/:id` | Bearer token | Update task details |
+| `PUT` | `/todo/:id/status` | Bearer token | Update a task's status |
+| `DELETE` | `/todo/:id` | Bearer token | Delete a task |
+
+## Deployment
+
+### Frontend
+
+Deploy the `frontend` directory to Vercel with:
+
+- Build command: `npm run build`
+- Output directory: `dist`
+- Environment variable: `VITE_API_URL=<deployed-backend-url>`
+
+### Backend
+
+Deploy the `backend` directory to a Node.js hosting provider and configure:
+
+```env
+DATABASE_URL=<production-postgresql-url>
+JWT_SECRET=<strong-production-secret>
+NODE_ENV=production
+FRONTEND_URL=https://task-flow-kappa-vert.vercel.app
+```
+
+The backend initializes its database tables on startup.
+
+## Author
+
+[krishxwebdev](https://github.com/krishxwebdev)
