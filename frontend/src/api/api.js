@@ -1,19 +1,19 @@
-// One place that knows how to talk to the backend.
-// Every component imports functions from here instead of calling fetch() directly.
-// That way, if the backend URL ever changes, we only edit it in ONE place.
-
-// In production (Vercel), use the live Render backend.
-// In local dev, use localhost. Vite exposes import.meta.env.
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-// A small wrapper around fetch() that:
-// 1. Always sends/receives cookies (credentials: 'include') -> needed for sessions
-// 2. Always sends/parses JSON
-// 3. Throws an error if the response is not ok, so components can use try/catch
+// JWT token helpers — token stored in localStorage so it survives page refresh
+// and works across different domains (Vercel frontend → Render backend).
+const getToken = () => localStorage.getItem('tf_token');
+const setToken = (t) => localStorage.setItem('tf_token', t);
+const clearToken = () => localStorage.removeItem('tf_token');
+
 async function request(path, options = {}) {
+  const token = getToken();
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      // Attach JWT on every request if we have one
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     ...options,
   });
 
@@ -26,15 +26,30 @@ async function request(path, options = {}) {
 }
 
 // ---- Auth ----
-export const login = (employeeId, password) =>
-  request('/api/auth/login', { method: 'POST', body: JSON.stringify({ employeeId, password }) });
+export const login = async (employeeId, password) => {
+  const data = await request('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ employeeId, password }),
+  });
+  setToken(data.token); // save the JWT
+  return data;
+};
 
-export const register = (username, employeeId, password) =>
-  request('/api/auth/register', { method: 'POST', body: JSON.stringify({ username, employeeId, password }) });
+export const register = async (username, employeeId, password) => {
+  const data = await request('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ username, employeeId, password }),
+  });
+  setToken(data.token);
+  return data;
+};
 
 export const checkSession = () => request('/api/auth/me');
 
-export const logout = () => request('/api/auth/logout', { method: 'POST' });
+export const logout = () => {
+  clearToken(); // just delete the token — no server call needed
+  return Promise.resolve();
+};
 
 // ---- Tasks ----
 export const getTasks = (filters = {}) => {
