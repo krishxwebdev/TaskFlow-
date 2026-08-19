@@ -1,7 +1,7 @@
 // This runs once when the server starts.
 // It creates the database tables if they don't exist yet —
 // so you never need to manually run schema.sql on the cloud.
-const pool = require('./config/db');
+const pool = require('./db');
 
 async function initDb() {
   try {
