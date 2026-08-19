@@ -9,13 +9,22 @@ const JWT_EXPIRES = '7d'; // token valid for 7 days
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
-  const { username, employeeId, password } = req.body;
+  const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
+  const employeeId = typeof req.body.employeeId === 'string' ? req.body.employeeId.trim() : '';
+  const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+  const { password } = req.body;
 
   if (!username || !employeeId || !password) {
     return res.status(400).json({ error: 'username, employeeId and password are required' });
   }
   if (password.length < 6) {
     return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  }
+  if (username.length > 100 || employeeId.length > 50) {
+    return res.status(400).json({ error: 'Username or Employee ID is too long' });
+  }
+  if (email && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 255)) {
+    return res.status(400).json({ error: 'Enter a valid email address' });
   }
 
   try {
@@ -28,17 +37,22 @@ router.post('/register', async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const result = await pool.query(
-      'INSERT INTO users (username, employee_id, password_hash) VALUES ($1, $2, $3) RETURNING id, username',
-      [username, employeeId, passwordHash]
+      `INSERT INTO users (username, employee_id, email, password_hash)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, username, email, role`,
+      [username, employeeId, email || null, passwordHash]
     );
 
     const user = result.rows[0];
     // Sign a JWT — this token is sent to the frontend and stored in localStorage
     const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
 
-    res.status(201).json({ message: 'Registered successfully', token, user: { id: user.id, username: user.username } });
+    res.status(201).json({ message: 'Registered successfully', token, user });
   } catch (err) {
     console.error(err);
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'That Employee ID or email is already registered' });
+    }
     res.status(500).json({ error: 'Server error during registration' });
   }
 });
@@ -53,7 +67,8 @@ router.post('/login', async (req, res) => {
 
   try {
     const result = await pool.query(
-      'SELECT * FROM users WHERE employee_id = $1', [employeeId]
+      `SELECT id, username, email, role, password_hash
+       FROM users WHERE employee_id = $1`, [employeeId]
     );
 
     if (result.rows.length === 0) {
@@ -69,7 +84,11 @@ router.post('/login', async (req, res) => {
 
     const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
 
-    res.json({ message: 'Login successful', token, user: { id: user.id, username: user.username } });
+    res.json({
+      message: 'Login successful',
+      token,
+      user: { id: user.id, username: user.username, email: user.email, role: user.role },
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error during login' });
@@ -77,7 +96,7 @@ router.post('/login', async (req, res) => {
 });
 
 // GET /api/auth/me - validate token on page refresh
-router.get('/me', (req, res) => {
+router.get('/me', async (req, res) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -85,7 +104,12 @@ router.get('/me', (req, res) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    res.json({ loggedIn: true, user: { id: decoded.id, username: decoded.username } });
+    const result = await pool.query(
+      'SELECT id, username, email, role FROM users WHERE id = $1',
+      [decoded.id]
+    );
+    if (!result.rows[0]) return res.json({ loggedIn: false });
+    res.json({ loggedIn: true, user: result.rows[0] });
   } catch {
     res.json({ loggedIn: false });
   }

@@ -35,10 +35,10 @@ export const login = async (employeeId, password) => {
   return data;
 };
 
-export const register = async (username, employeeId, password) => {
+export const register = async (username, employeeId, password, email = '') => {
   const data = await request('/api/auth/register', {
     method: 'POST',
-    body: JSON.stringify({ username, employeeId, password }),
+    body: JSON.stringify({ username, employeeId, password, email }),
   });
   setToken(data.token);
   return data;
@@ -70,3 +70,16 @@ export const updateTaskStatus = (id, status) =>
 
 export const deleteTask = (id) =>
   request(`/todo/${id}`, { method: 'DELETE' });
+
+// ---- Read-only admin dashboard ----
+const withQuery = (path, params = {}) => {
+  const query = new URLSearchParams(
+    Object.entries(params).filter(([, value]) => value !== '' && value !== undefined && value !== null)
+  ).toString();
+  return request(`${path}${query ? `?${query}` : ''}`);
+};
+
+export const getAdminOverview = () => request('/api/admin/overview');
+export const getAdminUsers = (params) => withQuery('/api/admin/users', params);
+export const getAdminUser = (id, params) => withQuery(`/api/admin/users/${id}`, params);
+export const getAdminTasks = (params) => withQuery('/api/admin/tasks', params);

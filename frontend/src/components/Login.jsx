@@ -7,6 +7,7 @@ function Login({ onLogin }) {
   const [mode, setMode] = useState('login'); // 'login' | 'register'
   const [username, setUsername] = useState('');
   const [employeeId, setEmployeeId] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,7 +19,7 @@ function Login({ onLogin }) {
     try {
       const data = mode === 'login'
         ? await login(employeeId, password)
-        : await register(username, employeeId, password);
+        : await register(username, employeeId, password, email);
       onLogin(data.user);
     } catch (err) {
       setError(err.message);
@@ -50,6 +51,20 @@ function Login({ onLogin }) {
               placeholder="e.g. Priya Sharma"
               required
               autoComplete="name"
+            />
+          </>
+        )}
+
+        {mode === 'register' && (
+          <>
+            <label htmlFor="email">Email <span className="optional-label">Optional</span></label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@company.com"
+              autoComplete="email"
             />
           </>
         )}

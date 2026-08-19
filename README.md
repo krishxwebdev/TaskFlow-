@@ -24,6 +24,8 @@ progress, and managing deadlines through a responsive dashboard.
 - Keyboard shortcuts for common actions
 - Toast notifications and custom confirmation dialogs
 - Responsive dark-themed interface
+- Role-protected, read-only administration dashboard
+- Cross-account user and task search, filtering, sorting, and pagination
 
 ## Tech Stack
 
@@ -44,8 +46,10 @@ taskflow/
 │   │   ├── db.js              # PostgreSQL connection pool
 │   │   └── initDb.js          # Automatic table initialization
 │   ├── middleware/
-│   │   └── requireAuth.js     # JWT authentication guard
+│   │   ├── requireAuth.js     # JWT authentication guard
+│   │   └── requireAdmin.js    # Current database-role guard
 │   ├── routes/
+│   │   ├── admin.js           # Read-only administration APIs
 │   │   ├── auth.js            # Registration and login routes
 │   │   └── todo.js            # Task CRUD and summary routes
 │   ├── .env.example
@@ -109,6 +113,26 @@ npm run dev
 
 The API will be available at `http://localhost:5000`.
 
+### Assign the first administrator
+
+Registration always creates a normal user. After registering the first trusted
+administrator, promote that account directly in PostgreSQL using its Employee ID:
+
+```sql
+UPDATE users SET role = 'admin' WHERE employee_id = 'EMP1024';
+```
+
+This database-only bootstrap prevents a public request from granting itself
+administrator access. Refresh TaskFlow after the update, then use the **Admin**
+button or open `http://localhost:5173/admin`.
+
+Existing databases are upgraded automatically on backend startup. To apply the
+same additive migration manually, run:
+
+```bash
+psql -d taskflow -f backend/migration_add_admin.sql
+```
+
 ### 4. Configure and run the frontend
 
 In a second terminal:
@@ -146,6 +170,26 @@ Open `http://localhost:5173`.
 | `PUT` | `/todo/:id` | Bearer token | Update task details |
 | `PUT` | `/todo/:id/status` | Bearer token | Update a task's status |
 | `DELETE` | `/todo/:id` | Bearer token | Delete a task |
+| `GET` | `/api/admin/overview` | Admin bearer token | Retrieve organization totals |
+| `GET` | `/api/admin/users` | Admin bearer token | Search and paginate users |
+| `GET` | `/api/admin/users/:id` | Admin bearer token | Retrieve a user and their tasks |
+| `GET` | `/api/admin/tasks` | Admin bearer token | Search and paginate all tasks |
+
+Admin endpoints verify the caller's current role from PostgreSQL for every
+request. They never return password hashes or tokens and do not expose task
+editing or deletion operations.
+
+## Verification
+
+```bash
+cd backend
+npm run check
+npm test
+
+cd ../frontend
+npm run lint
+npm run build
+```
 
 ## Deployment
 

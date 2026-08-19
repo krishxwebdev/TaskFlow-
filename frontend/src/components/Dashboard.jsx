@@ -135,6 +135,11 @@ function Dashboard({ user, onLogout }) {
 
   const userInitial = user.username ? user.username.charAt(0).toUpperCase() : '?';
 
+  const openAdmin = () => {
+    window.history.pushState({}, '', '/admin');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  };
+
   return (
     <div className="dashboard">
       <header className="dashboard-header">
@@ -144,6 +149,7 @@ function Dashboard({ user, onLogout }) {
             <div className="user-avatar">{userInitial}</div>
             <span>{user.username}</span>
           </div>
+          {user.role === 'admin' && <button onClick={openAdmin}>Admin</button>}
           <button onClick={handleLogout}>Log out</button>
         </div>
       </header>

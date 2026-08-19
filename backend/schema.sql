@@ -5,9 +5,14 @@ CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(100) NOT NULL,
     employee_id VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(255),
+    role VARCHAR(20) NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
     password_hash VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique
+ON users (LOWER(email)) WHERE email IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS tasks (
     id SERIAL PRIMARY KEY,
@@ -20,6 +25,10 @@ CREATE TABLE IF NOT EXISTS tasks (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS tasks_user_id_idx ON tasks (user_id);
+CREATE INDEX IF NOT EXISTS tasks_status_idx ON tasks (status);
+CREATE INDEX IF NOT EXISTS tasks_due_date_idx ON tasks (due_date);
 
 -- Auto-update updated_at on task changes
 CREATE OR REPLACE FUNCTION update_updated_at()

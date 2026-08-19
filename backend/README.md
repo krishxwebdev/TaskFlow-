@@ -1,55 +1,35 @@
-# TaskFlow — Setup Guide
+# TaskFlow API
 
-A multi-user task management app: React frontend, Node/Express backend, MySQL database.
+Express 4 API backed by PostgreSQL. It provides JWT authentication, user-owned
+task CRUD, and role-protected read-only administration endpoints.
 
-## Folder structure
-```
-taskflow/
-  backend/     -> Node.js + Express API + MySQL
-  frontend/    -> React (Vite) dashboard
-```
+## Setup
 
-## 1. Set up the database
-Open Command Prompt in the `backend` folder and run:
-```
-mysql -u root -p < schema.sql
-```
-Enter your MySQL root password when asked. This creates the `taskflow` database
-and its `users` and `tasks` tables.
+Create `backend/.env` with `DATABASE_URL`, `JWT_SECRET`, `PORT`, `NODE_ENV`, and
+`FRONTEND_URL`, then run:
 
-## 2. Set up the backend
-```
-cd backend
-copy .env.example .env
-```
-Open `.env` in Notepad and put your real MySQL password in `DB_PASSWORD`.
-
-Then install and run:
-```
+```bash
 npm install
 npm start
 ```
-You should see: `TaskFlow backend running on http://localhost:5000`
-Leave this window open and running.
 
-## 3. Set up the frontend
-Open a **second** Command Prompt window (keep the backend one running):
+Tables and additive admin columns/indexes are initialized on startup. Existing
+databases can instead apply `migration_add_admin.sql` manually with `psql`.
+
+## First administrator
+
+Register normally, then promote the trusted account from PostgreSQL:
+
+```sql
+UPDATE users SET role = 'admin' WHERE employee_id = 'EMP1024';
 ```
-cd frontend
-npm install
-npm run dev
+
+Public registration cannot assign roles. Admin APIs first validate the JWT and
+then load the current role from the database on every request.
+
+## Checks
+
+```bash
+npm run check
+npm test
 ```
-It will print a URL, usually `http://localhost:5173` — open that in your browser.
-
-## 4. Use the app
-- Enter any username + employee ID -> you're automatically registered and logged in
-- Add tasks, edit them, change their status, filter/search, delete them
-- Stats update live at the top of the dashboard
-
-## Troubleshooting
-- "Cannot connect to MySQL" -> check your password in `.env` is correct, and that
-  the MySQL service is running (search "Services" in Windows, look for MySQL80).
-- "Port 5000 already in use" -> change `PORT` in `.env` to e.g. 5001, and update
-  `BASE_URL` in `frontend/src/api/api.js` to match.
-- CORS errors in browser console -> make sure backend is running on port 5000
-  and frontend on port 5173 (the backend's cors() config expects that exact origin).
