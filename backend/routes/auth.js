@@ -4,9 +4,6 @@ const bcrypt = require('bcryptjs');
 const pool = require('../config/db');
 
 // POST /api/auth/register
-// Creates a brand-new user. We NEVER store the raw password - bcrypt.hash()
-// scrambles it one-way (a "hash"). Even if someone stole the database,
-// they could not read the original passwords back out.
 router.post('/register', async (req, res) => {
   const { username, employeeId, password } = req.body;
 
@@ -18,24 +15,28 @@ router.post('/register', async (req, res) => {
   }
 
   try {
-    const [existing] = await pool.query('SELECT id FROM users WHERE employee_id = ?', [employeeId]);
-    if (existing.length > 0) {
+    // Check if employee ID already exists
+    const existing = await pool.query(
+      'SELECT id FROM users WHERE employee_id = $1',
+      [employeeId]
+    );
+    if (existing.rows.length > 0) {
       return res.status(409).json({ error: 'An account with this Employee ID already exists. Please log in instead.' });
     }
 
-    // 10 = "salt rounds" - how much computational work goes into the hash.
-    // Higher = slower to crack, but also slower to compute. 10 is a solid default.
     const passwordHash = await bcrypt.hash(password, 10);
 
-    const [result] = await pool.query(
-      'INSERT INTO users (username, employee_id, password_hash) VALUES (?, ?, ?)',
+    // PostgreSQL: RETURNING gives us back the inserted row's id
+    const result = await pool.query(
+      'INSERT INTO users (username, employee_id, password_hash) VALUES ($1, $2, $3) RETURNING id',
       [username, employeeId, passwordHash]
     );
 
-    req.session.userId = result.insertId;
+    const newId = result.rows[0].id;
+    req.session.userId = newId;
     req.session.username = username;
 
-    res.status(201).json({ message: 'Registered successfully', user: { id: result.insertId, username } });
+    res.status(201).json({ message: 'Registered successfully', user: { id: newId, username } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error during registration' });
@@ -43,9 +44,6 @@ router.post('/register', async (req, res) => {
 });
 
 // POST /api/auth/login
-// Looks up the user by employee_id, then uses bcrypt.compare() to check
-// the submitted password against the stored hash. compare() re-hashes the
-// input with the same salt and checks if it matches - it never "un-hashes" anything.
 router.post('/login', async (req, res) => {
   const { employeeId, password } = req.body;
 
@@ -54,13 +52,16 @@ router.post('/login', async (req, res) => {
   }
 
   try {
-    const [rows] = await pool.query('SELECT * FROM users WHERE employee_id = ?', [employeeId]);
+    const result = await pool.query(
+      'SELECT * FROM users WHERE employee_id = $1',
+      [employeeId]
+    );
 
-    if (rows.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(401).json({ error: 'No account found with that Employee ID. Please register first.' });
     }
 
-    const user = rows[0];
+    const user = result.rows[0];
     const passwordMatches = await bcrypt.compare(password, user.password_hash);
 
     if (!passwordMatches) {
@@ -77,7 +78,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// GET /api/auth/me - "am I already logged in?" (checked on page refresh)
+// GET /api/auth/me - session check on page refresh
 router.get('/me', (req, res) => {
   if (req.session.userId) {
     res.json({ loggedIn: true, user: { id: req.session.userId, username: req.session.username } });

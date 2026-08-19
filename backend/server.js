@@ -8,38 +8,43 @@ const todoRoutes = require('./routes/todo');
 
 const app = express();
 
-// --- Middleware (these run on EVERY request, in order) ---
+// --- CORS: allow both local dev and the deployed Vercel frontend ---
+const allowedOrigins = [
+  'http://localhost:5173',
+  process.env.FRONTEND_URL,  // set this on Render to your Vercel URL
+].filter(Boolean);
 
-// Allow the React app (running on a different port, e.g. 5173) to call this API
-// and to send/receive cookies (needed for sessions).
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, Postman)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
 
-// Parse incoming JSON bodies into req.body
 app.use(express.json());
 
-// Session management: on first request, creates a signed cookie in the browser.
-// On every future request, that cookie is checked and req.session is restored.
-// This is what keeps a user "logged in" across page loads.
 app.use(session({
   secret: process.env.SESSION_SECRET || 'dev_secret_change_me',
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure: false, // set to true only when serving over HTTPS
+    secure: process.env.NODE_ENV === 'production',  // HTTPS only in production
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',  // needed for cross-domain cookies
     maxAge: 1000 * 60 * 60 * 24, // 1 day
   },
 }));
 
 // --- Routes ---
-app.use('/api/auth', authRoutes);   // /api/auth/login, /api/auth/logout, /api/auth/me
-app.use('/todo', todoRoutes);       // /todo, /todo/:id, /todo/:id/status
+app.use('/api/auth', authRoutes);
+app.use('/todo', todoRoutes);
 
-// Simple health check
-app.get('/', (req, res) => res.send('TaskFlow API is running'));
+app.get('/', (req, res) => res.send('TaskFlow API is running ✅'));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`TaskFlow backend running on http://localhost:${PORT}`));
