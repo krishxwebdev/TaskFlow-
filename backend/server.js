@@ -7,6 +7,7 @@ const pool = require('./config/db');
 
 const authRoutes = require('./routes/auth');
 const todoRoutes = require('./routes/todo');
+const initDb = require('./config/initDb');
 
 const app = express();
 
@@ -55,4 +56,8 @@ app.use('/todo', todoRoutes);
 app.get('/', (req, res) => res.send('TaskFlow API is running ✅'));
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`TaskFlow backend running on http://localhost:${PORT}`));
+
+// Initialize DB tables first, then start the server
+initDb().then(() => {
+  app.listen(PORT, () => console.log(`TaskFlow backend running on http://localhost:${PORT}`));
+});
